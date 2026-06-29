@@ -41,11 +41,25 @@ PRINT_DIR="${PRINT_DIR%/}"
 
 # 2) 找 Links 主圖（優先檔名含 @4x，否則取第一張 png）
 LINKS_DIR="$PRINT_DIR/Links"
-[ -d "$LINKS_DIR" ] || { echo "✗ 找不到 Links 子夾：$LINKS_DIR"; exit 1; }
+[ -d "$LINKS_DIR" ] || mkdir -p "$LINKS_DIR"
+
+# 2a) 自動等待：主圖還沒放就輪詢偵測（設計師手動存進 Links/ 後自動繼續，不需口頭回報）
+#     WAIT_SECS=0 可關閉等待；預設等 1800 秒（30 分）
+WAIT_SECS="${WAIT_SECS:-1800}"
+if ! ls "$LINKS_DIR"/*@4x*.png "$LINKS_DIR"/*.png >/dev/null 2>&1 && [ "$WAIT_SECS" -gt 0 ]; then
+  echo "⏳ 尚未偵測到主圖。請把『印刷-票口海報_67x108mm@4x.png』存進："
+  echo "   $LINKS_DIR"
+  echo "   （偵測到就自動繼續，最多等 ${WAIT_SECS} 秒，無需回報）"
+  waited=0
+  while ! ls "$LINKS_DIR"/*@4x*.png "$LINKS_DIR"/*.png >/dev/null 2>&1 && [ "$waited" -lt "$WAIT_SECS" ]; do
+    sleep 5; waited=$((waited+5))
+  done
+fi
+
 SRC_PNG="$(ls "$LINKS_DIR"/*@4x*.png 2>/dev/null | head -n1 || true)"
 [ -z "$SRC_PNG" ] && SRC_PNG="$(ls "$LINKS_DIR"/*.png 2>/dev/null | head -n1 || true)"
-[ -z "$SRC_PNG" ] && { echo "✗ 在 Links/ 找不到主圖 PNG，請先把主圖放進去。"; exit 1; }
-echo "✓ 主圖：$SRC_PNG"
+[ -z "$SRC_PNG" ] && { echo "✗ 等待逾時仍未在 Links/ 找到主圖 PNG。請放好後重跑。"; exit 1; }
+echo "✓ 偵測到主圖：$SRC_PNG"
 
 # 3) 確認範本
 [ -f "$TEMPLATE_AI" ] || { echo "✗ 找不到範本 .ai：$TEMPLATE_AI（可用環境變數 TEMPLATE_AI 指定）"; exit 1; }
