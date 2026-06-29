@@ -83,7 +83,7 @@ all_trash = []
 all_trash += process(sv_dir)
 all_trash += process(os.path.join(sv_dir, "2x"))
 with open(trash_list, "w") as f:
-    f.write("\n".join(all_trash))
+    f.write("".join(p + "\n" for p in all_trash))  # 每行含結尾換行，避免 while-read 吞掉最後一筆
 print(f"  待清原影格：{len(all_trash)} 張")
 PY
 
@@ -91,15 +91,17 @@ PY
 if [ "${NO_TRASH:-0}" = "1" ]; then
   echo "（NO_TRASH=1，保留原影格不清）"
 else
-  LIST=""
-  while IFS= read -r f; do
-    [ -n "$f" ] && [ -f "$f" ] && LIST="$LIST POSIX file \"$f\","
+  # 逐一刪除（Finder 批次 delete 偶爾會漏清單裡的一個，逐一才可靠）
+  TRASHED=0
+  while IFS= read -r f || [ -n "$f" ]; do
+    [ -n "$f" ] && [ -f "$f" ] || continue
+    if osascript -e "tell application \"Finder\" to delete (POSIX file \"$f\")" >/dev/null 2>&1; then
+      TRASHED=$((TRASHED+1))
+    else
+      echo "⚠ 無法送廢紙簍：$f"
+    fi
   done < "$TRASH_LIST"
-  LIST="${LIST%,}"
-  if [ -n "$LIST" ]; then
-    osascript -e "tell application \"Finder\" to delete { $LIST }" >/dev/null
-    echo "✓ 原始靜態影格已送廢紙簍（可還原）"
-  fi
+  echo "✓ 原始靜態影格已送廢紙簍 $TRASHED 張（可還原）"
 fi
 rm -f "$TRASH_LIST"
 
