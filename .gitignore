@@ -1,0 +1,6 @@
+# 個人設定（含 Figma fileKey）——不進公開 repo
+config.json
+
+# macOS
+.DS_Store
+**/.DS_Store

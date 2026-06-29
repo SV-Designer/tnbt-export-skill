@@ -1,0 +1,5 @@
+{
+  "_說明": "複製此檔為 config.json 並填入你的值。config.json 已被 gitignore，不會進 repo。",
+  "fileKey": "YOUR_FIGMA_FILE_KEY",
+  "outputBase": "~/Downloads"
+}
